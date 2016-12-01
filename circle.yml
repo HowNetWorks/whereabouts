@@ -10,5 +10,5 @@ deployment:
       - gcloud config set project ${GCLOUD_PROJECT}
       - echo ${GCLOUD_SERVICE_KEY} | base64 --decode > ${HOME}/gcloud-service-key.json
       - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-      - docker build --rm=false -t eu.gcr.io/${GCLOUD_PROJECT}/${NAME}:${TAG} .
-      - gcloud docker -- push eu.gcr.io/${GCLOUD_PROJECT}/${NAME}:${TAG}
+      - docker build --rm=false -t eu.gcr.io/${GCLOUD_PROJECT}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG} .
+      - gcloud docker -- push eu.gcr.io/${GCLOUD_PROJECT}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
