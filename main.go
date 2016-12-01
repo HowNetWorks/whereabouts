@@ -292,7 +292,7 @@ func main() {
 		path := r.URL.Path[1:]
 		result, ok := d.Get(path)
 		if !ok {
-			http.NotFound(w, r)
+			w.Write([]byte("{}"))
 			return
 		}
 		b, err := json.Marshal(result)
@@ -302,5 +302,5 @@ func main() {
 		}
 		w.Write(b)
 	})
-	http.ListenAndServe("localhost:8080", nil)
+	http.ListenAndServe(":8080", nil)
 }
