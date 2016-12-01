@@ -1,0 +1,14 @@
+machine:
+  services:
+    - docker
+
+deployment:
+  gcloud:
+    tag: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+    commands:
+      - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update
+      - gcloud config set project ${GCLOUD_PROJECT}
+      - echo ${GCLOUD_SERVICE_KEY} | base64 --decode > ${HOME}/gcloud-service-key.json
+      - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+      - docker build --rm=false -t eu.gcr.io/${GCLOUD_PROJECT}/${NAME}:${TAG} .
+      - gcloud docker -- push eu.gcr.io/${GCLOUD_PROJECT}/${NAME}:${TAG}
