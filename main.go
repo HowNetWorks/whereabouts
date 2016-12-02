@@ -288,11 +288,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path[1:]
+	http.HandleFunc("/api/ip-to-cc/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path[14:]
 		result, ok := d.Get(path)
 		if !ok {
-			w.Write([]byte("{}"))
+			http.NotFound(w, r)
 			return
 		}
 		b, err := json.Marshal(result)
@@ -301,6 +301,13 @@ func main() {
 			return
 		}
 		w.Write(b)
+	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			http.NotFound(w, r)
+		}
 	})
 	http.ListenAndServe(":8080", nil)
 }
