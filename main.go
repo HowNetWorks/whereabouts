@@ -1,296 +1,152 @@
 package main
 
 import (
-	"archive/zip"
 	"bytes"
-	"encoding/csv"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"flag"
-	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
-	"net/url"
-	"path"
-	"sort"
-	"strconv"
+	"sync"
+	"time"
 )
 
-var urlString = flag.String("url", "http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip", "URL for loading the database")
+const (
+	DEFAULT_UPDATE_URL = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip"
+	DEFAULT_HASH_URL   = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip.md5"
+)
 
-func readUrl(s string) ([]byte, error) {
-	u, err := url.Parse(s)
+var updateUrl = flag.String("update-url", DEFAULT_UPDATE_URL, "URL for database updates")
+var hashUrl = flag.String("hash-url", "", "URL for checking database hash")
+var initUrl = flag.String("init-url", "", "URL for the initial database load")
+var dbMux sync.RWMutex
+var db *GeoDB
+
+func set(newdb *GeoDB) {
+	dbMux.Lock()
+	defer dbMux.Unlock()
+	db = newdb
+}
+
+func get(ip string) (GeoDBEntry, bool) {
+	dbMux.RLock()
+	defer dbMux.RUnlock()
+	return db.Get(ip)
+}
+
+func decodeHex(src []byte) ([]byte, error) {
+	dst := make([]byte, len(src)/2)
+	_, err := hex.Decode(dst, src)
 	if err != nil {
 		return nil, err
 	}
-
-	switch u.Scheme {
-	case "file":
-		return ioutil.ReadFile(u.Path)
-	case "http", "https":
-		resp, err := http.Get(s)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, err
-		}
-
-		return ioutil.ReadAll(resp.Body)
-	}
-
-	return nil, fmt.Errorf("unknown scheme %q", u.Scheme)
+	return dst, nil
 }
 
-type geoNameId uint32
+func tryUpdatingOnce(md5sum []byte, updateSource, hashSource *Source) []byte {
+	if hashSource != nil {
+		log.Println("Loading database hash from", hashSource)
 
-func ParseGeoNameId(n string) (geoNameId, error) {
-	i, err := strconv.ParseUint(n, 10, 32)
+		b, err := hashSource.Read()
+		if err != nil {
+			log.Println("Failed to load database hash:", err)
+			return md5sum
+		}
+
+		sum, err := decodeHex(b)
+		if err != nil {
+			log.Println("Couldn't decode hash:", err)
+			return md5sum
+		}
+
+		if bytes.Equal(md5sum, sum) {
+			log.Println("Database not updated (MD5 sums match)")
+			return md5sum
+		}
+
+		log.Println("Database potentially updated")
+	}
+
+	log.Println("Loading database from", updateSource)
+	b, err := updateSource.Read()
 	if err != nil {
-		return 0, err
-	}
-	return geoNameId(i), nil
-}
-
-type continent struct {
-	Code string
-	Name string
-}
-
-type country struct {
-	Code string
-	Name string
-}
-
-type geoNameEntry struct {
-	Continent continent
-	Country   country
-}
-
-type geoNames map[geoNameId]geoNameEntry
-
-func readGeoNames(r io.Reader) (geoNames, error) {
-	g := geoNames{}
-	c := csv.NewReader(r)
-	for i := 0; ; i++ {
-		record, err := c.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if len(record) < 6 {
-			return nil, errors.New("unexpected line")
-		}
-		if i == 0 {
-			continue
-		}
-		id, err := ParseGeoNameId(record[0])
-		if err != nil {
-			return nil, err
-		}
-		g[id] = geoNameEntry{
-			Continent: continent{
-				Code: record[2],
-				Name: record[3],
-			},
-			Country: country{
-				Code: record[4],
-				Name: record[5],
-			},
-		}
-	}
-	return g, nil
-}
-
-func (g geoNames) Get(id geoNameId) (geoNameEntry, bool) {
-	e, ok := g[id]
-	return e, ok
-}
-
-func less(left, right net.IP) bool {
-	leftLen := len(left)
-	rightLen := len(right)
-	if leftLen != rightLen {
-		return leftLen < rightLen
-	}
-	for idx, b := range right {
-		if left[idx] != b {
-			return left[idx] < b
-		}
-	}
-	return false
-}
-
-type network struct {
-	net.IPNet
-	NameId geoNameId
-}
-
-type networks []network
-
-func readNetworks(r io.Reader) (networks, error) {
-	n := networks{}
-
-	c := csv.NewReader(r)
-	for i := 0; ; i++ {
-		record, err := c.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if len(record) < 2 {
-			return nil, errors.New("unexpected line")
-		}
-		if i == 0 || record[1] == "" {
-			continue
-		}
-
-		_, nw, err := net.ParseCIDR(record[0])
-		if err != nil {
-			return nil, err
-		}
-		id, err := ParseGeoNameId(record[1])
-		if err != nil {
-			return nil, err
-		}
-		n = append(n, network{IPNet: *nw, NameId: id})
+		log.Println("Failed to load database data:", err)
+		return md5sum
 	}
 
-	sort.Sort(n)
-	return n, nil
-}
-
-func (n networks) Len() int {
-	return len(n)
-}
-
-func (n networks) Swap(i, j int) {
-	n[i], n[j] = n[j], n[i]
-}
-
-func (n networks) Less(i, j int) bool {
-	return less(n[i].IP, n[j].IP)
-}
-
-func (n networks) Get(ip net.IP) (geoNameId, bool) {
-	idx := sort.Search(len(n), func(i int) bool {
-		return less(ip, n[i].IP)
-	})
-	if idx == 0 {
-		return 0, false
+	newsum := md5.Sum(b)
+	if bytes.Equal(newsum[:], md5sum) {
+		log.Println("Database not updated (MD5 sums match)")
+		return md5sum
 	}
 
-	if idx == -1 {
-		idx = len(n)
-	}
-	idx -= 1
-	if idx < len(n) && n[idx].IPNet.Contains(ip) {
-		return n[idx].NameId, true
-	}
-	return 0, false
-}
-
-type db struct {
-	names geoNames
-	ipv4  networks
-	ipv6  networks
-}
-
-func New(b []byte) (*db, error) {
-	z, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	log.Println("Parsing database")
+	newdb, err := NewGeoDB(b)
 	if err != nil {
-		return nil, err
+		log.Println("Failed to parse the database:", err)
+		return md5sum
 	}
 
-	var names geoNames
-	var ipv4 networks
-	var ipv6 networks
-	for _, f := range z.File {
-		name := path.Base(f.Name)
-
-		switch name {
-		case "GeoLite2-Country-Blocks-IPv4.csv":
-			r, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer r.Close()
-			ipv4, err = readNetworks(r)
-			if err != nil {
-				return nil, err
-			}
-		case "GeoLite2-Country-Blocks-IPv6.csv":
-			r, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer r.Close()
-			ipv6, err = readNetworks(r)
-			if err != nil {
-				return nil, err
-			}
-		case "GeoLite2-Country-Locations-en.csv":
-			r, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer r.Close()
-			names, err = readGeoNames(r)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if names == nil || ipv4 == nil || ipv6 == nil {
-		return nil, errors.New("couldn't find all sections")
-	}
-	return &db{names: names, ipv4: ipv4, ipv6: ipv6}, nil
+	log.Println("Database updated")
+	set(newdb)
+	return newsum[:]
 }
 
-func (d *db) Get(s string) (geoNameEntry, bool) {
-	ip := net.ParseIP(s)
-
-	var id geoNameId
-	var ok bool
-	if ipv4 := ip.To4(); ipv4 != nil {
-		id, ok = d.ipv4.Get(ipv4)
-	} else if ipv6 := ip.To16(); ipv6 != nil {
-		id, ok = d.ipv6.Get(ipv6)
+func update(md5sum []byte, updateSource, hashSource *Source) {
+	md5sum = tryUpdatingOnce(md5sum, updateSource, hashSource)
+	for {
+		time.Sleep(1 * time.Hour)
+		md5sum = tryUpdatingOnce(md5sum, updateSource, hashSource)
 	}
-
-	if !ok {
-		return geoNameEntry{}, false
-	}
-	e, ok := d.names.Get(id)
-	return e, ok
 }
 
 func main() {
 	flag.Parse()
 
-	b, err := readUrl(*urlString)
+	if *hashUrl == "" && *updateUrl == DEFAULT_UPDATE_URL {
+		*hashUrl = DEFAULT_HASH_URL
+	}
+	if *initUrl == "" {
+		*initUrl = DEFAULT_UPDATE_URL
+	}
+
+	var updateSource, initSource, hashSource *Source
+	updateSource, err := NewSource(*updateUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	initSource, err = NewSource(*initUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if *hashUrl != "" {
+		hashSource, err = NewSource(*hashUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	log.Println("Loading initial database from", initSource)
+	b, err := initSource.Read()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d, err := New(b)
+	log.Println("Parsing initial database")
+	db, err := NewGeoDB(b)
 	if err != nil {
 		log.Fatal(err)
 	}
+	set(db)
+
+	log.Println("Starting database updates")
+	md5sum := md5.Sum(b)
+	go update(md5sum[:], updateSource, hashSource)
 
 	http.HandleFunc("/api/ip-to-cc/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path[14:]
-		result, ok := d.Get(path)
+		result, ok := get(path)
 		if !ok {
 			http.NotFound(w, r)
 			return
@@ -309,5 +165,6 @@ func main() {
 			http.NotFound(w, r)
 		}
 	})
+	log.Println("Serving on port 8080")
 	http.ListenAndServe(":8080", nil)
 }
