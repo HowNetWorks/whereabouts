@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -17,11 +19,16 @@ const (
 	DEFAULT_HASH_URL   = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip.md5"
 )
 
-var updateUrl = flag.String("update-url", DEFAULT_UPDATE_URL, "URL for database updates")
-var hashUrl = flag.String("hash-url", "", "URL for checking database hash")
-var initUrl = flag.String("init-url", "", "URL for the initial database load")
-var dbMux sync.RWMutex
-var db *GeoDB
+var (
+	port           = flag.Uint("port", 8080, "server port")
+	updateInterval = flag.Duration("update-interval", 4*time.Hour, "how often database updates are run")
+	updateUrl      = flag.String("update-url", DEFAULT_UPDATE_URL, "URL for database updates")
+	hashUrl        = flag.String("hash-url", "", "URL for checking database hash")
+	initUrl        = flag.String("init-url", "", "URL for the initial database load")
+
+	dbMux sync.RWMutex
+	db    *GeoDB
+)
 
 func set(newdb *GeoDB) {
 	dbMux.Lock()
@@ -96,7 +103,7 @@ func tryUpdatingOnce(md5sum []byte, updateSource, hashSource *Source) []byte {
 func update(md5sum []byte, updateSource, hashSource *Source) {
 	md5sum = tryUpdatingOnce(md5sum, updateSource, hashSource)
 	for {
-		time.Sleep(1 * time.Hour)
+		time.Sleep(*updateInterval)
 		md5sum = tryUpdatingOnce(md5sum, updateSource, hashSource)
 	}
 }
@@ -165,6 +172,8 @@ func main() {
 			http.NotFound(w, r)
 		}
 	})
-	log.Println("Serving on port 8080")
-	http.ListenAndServe(":8080", nil)
+
+	hostPort := net.JoinHostPort("", strconv.FormatUint(uint64(*port), 10))
+	log.Println("Serving on", hostPort)
+	http.ListenAndServe(hostPort, nil)
 }
