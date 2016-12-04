@@ -174,6 +174,11 @@ func main() {
 	})
 
 	hostPort := net.JoinHostPort("", strconv.FormatUint(uint64(*port), 10))
+	server := &http.Server{
+		Addr:         hostPort,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
 	log.Println("Serving on", hostPort)
-	http.ListenAndServe(hostPort, nil)
+	log.Fatal(server.ListenAndServe())
 }
