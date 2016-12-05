@@ -41,7 +41,7 @@ func (s *Source) Read() ([]byte, error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			return nil, err
+			return nil, fmt.Errorf("status code %d", resp.StatusCode)
 		}
 
 		return ioutil.ReadAll(resp.Body)
