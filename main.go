@@ -115,7 +115,7 @@ func main() {
 		*hashUrl = DEFAULT_HASH_URL
 	}
 	if *initUrl == "" {
-		*initUrl = DEFAULT_UPDATE_URL
+		*initUrl = *updateUrl
 	}
 
 	var updateSource, initSource, hashSource *Source
