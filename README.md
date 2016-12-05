@@ -31,7 +31,7 @@ can be a IPv4 or IPv6 address.
 Let's assume the service is running on localhost port 8080 and has done the
 initial database load. To query Google's DNS service addresses run the following:
 
-```
+```sh
 $ curl http://locahost:8080/api/ip-to-cc/8.8.8.8
 {"Continent":{"Code":"NA","Name":"North America"},"Country":{"Code":"US","Name":"United States"}}
 $ curl http://hownetworks.io/api/ip-to-cc/2001:4860:4860::8888
@@ -41,7 +41,7 @@ $ curl http://hownetworks.io/api/ip-to-cc/2001:4860:4860::8888
 If the query if for an address that can't be mapped or isn't a valid IPv4/6
 address the service returns status code 404:
 
-```
+```sh
 $ curl http://hownetworks.io/api/ip-to-cc/192.0.2.0
 404 page not found
 $ curl http://hownetworks.io/api/ip-to-cc/not.an.ip.address
