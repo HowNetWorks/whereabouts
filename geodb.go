@@ -23,18 +23,18 @@ func ParseGeoNameId(n string) (geoNameId, error) {
 }
 
 type continent struct {
-	Code string
-	Name string
+	Code string `json:"code,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 type country struct {
-	Code string
-	Name string
+	Code string `json:"code,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 type GeoDBEntry struct {
-	Continent continent
-	Country   country
+	Continent continent `json:"continent"`
+	Country   country   `json:"country"`
 }
 
 type geoNames map[geoNameId]GeoDBEntry
