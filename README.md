@@ -33,9 +33,9 @@ initial database load. To query Google's DNS service addresses run the following
 
 ```sh
 $ curl http://locahost:8080/api/ip-to-cc/8.8.8.8
-{"Continent":{"Code":"NA","Name":"North America"},"Country":{"Code":"US","Name":"United States"}}
+{"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"}}
 $ curl http://hownetworks.io/api/ip-to-cc/2001:4860:4860::8888
-{"Continent":{"Code":"NA","Name":"North America"},"Country":{"Code":"US","Name":"United States"}}
+{"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"}}
 ```
 
 If the query if for an address that can't be mapped or isn't a valid IPv4/6
