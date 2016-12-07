@@ -170,53 +170,47 @@ type GeoDB struct {
 	ipv6  networks
 }
 
+func withEachFile(z *zip.Reader, fn func(string, io.Reader) error) error {
+	for _, file := range z.File {
+		err := func(f *zip.File) error {
+			r, err := f.Open()
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+
+			return fn(f.Name, r)
+		}(file)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func NewGeoDB(b []byte) (*GeoDB, error) {
 	z, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 	if err != nil {
 		return nil, err
 	}
 
-	var names geoNames
 	var ipv4 networks
 	var ipv6 networks
-	for _, f := range z.File {
-		name := path.Base(f.Name)
-
-		switch name {
+	var names geoNames
+	withEachFile(z, func(filename string, reader io.Reader) (err error) {
+		switch path.Base(filename) {
 		case "GeoLite2-Country-Blocks-IPv4.csv":
-			r, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer r.Close()
-			ipv4, err = readNetworks(r)
-			if err != nil {
-				return nil, err
-			}
+			ipv4, err = readNetworks(reader)
 		case "GeoLite2-Country-Blocks-IPv6.csv":
-			r, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer r.Close()
-			ipv6, err = readNetworks(r)
-			if err != nil {
-				return nil, err
-			}
+			ipv6, err = readNetworks(reader)
 		case "GeoLite2-Country-Locations-en.csv":
-			r, err := f.Open()
-			if err != nil {
-				return nil, err
-			}
-			defer r.Close()
-			names, err = readGeoNames(r)
-			if err != nil {
-				return nil, err
-			}
+			names, err = readGeoNames(reader)
 		}
-	}
+		return
+	})
 
-	if names == nil || ipv4 == nil || ipv6 == nil {
+	if ipv4 == nil || ipv6 == nil || names == nil {
 		return nil, errors.New("couldn't find all sections")
 	}
 	return &GeoDB{names: names, ipv4: ipv4, ipv6: ipv6}, nil
