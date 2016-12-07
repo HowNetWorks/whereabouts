@@ -1,4 +1,4 @@
-# ip-to-cc
+# ip-to-cc [![CircleCI](https://circleci.com/gh/HowNetWorks/ip-to-cc.svg?style=shield)](https://circleci.com/gh/HowNetWorks/ip-to-cc)
 
 A HTTP service for mapping IPv4 and IPv6 addresses to countries and continents.
 Written in Go (version 1.7.4).
