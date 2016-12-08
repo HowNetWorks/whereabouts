@@ -239,11 +239,12 @@ func (d *GeoDB) Get(s string) (GeoDBEntry, bool) {
 		id, ok = d.ipv4.Get(ipv4)
 	} else if ipv6 := ip.To16(); ipv6 != nil {
 		id, ok = d.ipv6.Get(ipv6)
-	}
-
-	if !ok {
+	} else {
 		return GeoDBEntry{}, false
 	}
-	e, ok := d.names.Get(id)
-	return e, ok
+
+	if ok {
+		return d.names.Get(id)
+	}
+	return GeoDBEntry{}, true
 }

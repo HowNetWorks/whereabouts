@@ -162,7 +162,8 @@ func main() {
 		path := r.URL.Path[14:]
 		result, ok := get(path)
 		if !ok {
-			http.NotFound(w, r)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			w.Write([]byte("{\"message\": \"Not an IPv4/IPv6 address\"}"))
 			return
 		}
 		b, err := json.Marshal(result)

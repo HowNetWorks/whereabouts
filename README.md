@@ -32,20 +32,20 @@ Let's assume the service is running on localhost port 8080 and has done the
 initial database load. To query Google's DNS service addresses run the following:
 
 ```sh
-$ curl http://locahost:8080/api/ip-to-cc/8.8.8.8
+$ curl http://localhost:8080/api/ip-to-cc/8.8.8.8
 {"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"},"city":"Mountain View"}
-$ curl http://hownetworks.io/api/ip-to-cc/2001:4860:4860::8888
+$ curl http://localhost:8080/api/ip-to-cc/2001:4860:4860::8888
 {"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"}}
+$ curl http://localhost:8080/api/ip-to-cc/192.0.2.0
+{}
 ```
 
-If the query if for an address that can't be mapped or isn't a valid IPv4/6
-address the service returns status code 404:
+If the queried IP isn't a valid IPv4/6 address the service returns status code
+422 (Unprocessable Entity) with a JSON formatted message object:
 
 ```sh
-$ curl http://hownetworks.io/api/ip-to-cc/192.0.2.0
-404 page not found
-$ curl http://hownetworks.io/api/ip-to-cc/not.an.ip.address
-404 page not found
+$ curl http://localhost:8080/api/ip-to-cc/not.an.ip.address
+{"message": "Not an IPv4/IPv6 address"}
 ```
 
 GET requests to the root path `/` return the status code 200, but only after the
