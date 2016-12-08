@@ -1,6 +1,13 @@
 machine:
+  environment:
+    GOROOT: "${HOME}/go"
+    PATH: "${GOROOT}/bin:${PATH}"
   services:
     - docker
+
+dependencies:
+  pre:
+    - curl -s -o- https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz | tar xfz - -C ${HOME}
 
 deployment:
   gcloud:
