@@ -8,4 +8,4 @@ USER app
 WORKDIR /go/src/ip-to-cc
 RUN go build
 
-CMD ./ip-to-cc -init-url file:///go/src/ip-to-cc/GeoLite2-City-CSV.zip
+CMD ./ip-to-cc -host 0.0.0.0 -init-url file:///go/src/ip-to-cc/GeoLite2-City-CSV.zip

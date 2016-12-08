@@ -20,6 +20,7 @@ const (
 )
 
 var (
+	host           = flag.String("host", "localhost", "server IP address or hostname")
 	port           = flag.Uint("port", 8080, "server port")
 	updateInterval = flag.Duration("update-interval", 4*time.Hour, "how often database updates are run")
 	updateUrl      = flag.String("update-url", DEFAULT_UPDATE_URL, "URL for database updates")
@@ -181,7 +182,7 @@ func main() {
 		}
 	})
 
-	hostPort := net.JoinHostPort("", strconv.FormatUint(uint64(*port), 10))
+	hostPort := net.JoinHostPort(*host, strconv.FormatUint(uint64(*port), 10))
 	server := &http.Server{
 		Addr:         hostPort,
 		ReadTimeout:  10 * time.Second,

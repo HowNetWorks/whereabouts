@@ -15,7 +15,8 @@ included [Dockerfile](./Dockerfile) for an example.
 
 ## Command-line Options
 
- * `port` The port which the HTTP server should listen to. Default: `8080`.
+ * `host` The IP address or hostname that the HTTP server should listen to. Default: `localhost`.
+ * `port` The port that the HTTP server should listen to. Default: `8080`.
  * `update-interval` How often database updates should be checked from `hash-url`/`update-url`. Uses Go's [Duration format](https://golang.org/pkg/time/#ParseDuration). Default: 4 hours.
  * `update-url` A URL for updating the database. Default: MaxMind's [GeoLite2 City](https://dev.maxmind.com/geoip/geoip2/geolite2/) database.
  * `hash-url` A URL pointing to a file containing a MD5 sum of the data in `update-url`. Useful for checking whether the database has updated without actually downloading the whole database. Default: Off by default, except when `update-url` points to its default value.
