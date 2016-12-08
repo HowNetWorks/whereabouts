@@ -53,13 +53,14 @@ func decodeHex(src []byte) ([]byte, error) {
 
 func tryUpdatingOnce(md5sum []byte, updateSource, hashSource *Source) []byte {
 	if hashSource != nil {
-		log.Println("Loading database hash from", hashSource)
-
+		log.Println("Downloading database hash from", hashSource)
+		start := time.Now()
 		b, err := hashSource.Read()
 		if err != nil {
 			log.Println("Failed to load database hash:", err)
 			return md5sum
 		}
+		log.Println("Downloaded database hash in", time.Since(start))
 
 		sum, err := decodeHex(b)
 		if err != nil {
@@ -75,12 +76,14 @@ func tryUpdatingOnce(md5sum []byte, updateSource, hashSource *Source) []byte {
 		log.Println("Database potentially updated")
 	}
 
-	log.Println("Loading database from", updateSource)
+	log.Println("Downloading database from", updateSource)
+	start := time.Now()
 	b, err := updateSource.Read()
 	if err != nil {
 		log.Println("Failed to load database data:", err)
 		return md5sum
 	}
+	log.Println("Downloaded database in", time.Since(start))
 
 	newsum := md5.Sum(b)
 	if bytes.Equal(newsum[:], md5sum) {
@@ -89,11 +92,13 @@ func tryUpdatingOnce(md5sum []byte, updateSource, hashSource *Source) []byte {
 	}
 
 	log.Println("Parsing database")
+	start = time.Now()
 	newdb, err := NewGeoDB(b)
 	if err != nil {
 		log.Println("Failed to parse the database:", err)
 		return md5sum
 	}
+	log.Println("Parsing done in", time.Since(start))
 
 	log.Println("Database updated")
 	set(newdb)
@@ -141,10 +146,12 @@ func main() {
 	}
 
 	log.Println("Parsing initial database")
+	start := time.Now()
 	db, err := NewGeoDB(b)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Parsing done in", time.Since(start))
 	set(db)
 
 	log.Println("Starting database updates")
