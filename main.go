@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	DEFAULT_UPDATE_URL = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip"
-	DEFAULT_HASH_URL   = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip.md5"
+	DEFAULT_UPDATE_URL = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip"
+	DEFAULT_HASH_URL   = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip.md5"
 )
 
 var (

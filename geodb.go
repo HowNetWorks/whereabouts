@@ -22,19 +22,34 @@ func ParseGeoNameId(n string) (geoNameId, error) {
 	return geoNameId(i), nil
 }
 
-type continent struct {
+type Continent struct {
 	Code string `json:"code,omitempty"`
 	Name string `json:"name,omitempty"`
 }
 
-type country struct {
+func (c Continent) Pointer() *Continent {
+	if c.Code == "" && c.Name == "" {
+		return nil
+	}
+	return &c
+}
+
+type Country struct {
 	Code string `json:"code,omitempty"`
 	Name string `json:"name,omitempty"`
+}
+
+func (c Country) Pointer() *Country {
+	if c.Code == "" && c.Name == "" {
+		return nil
+	}
+	return &c
 }
 
 type GeoDBEntry struct {
-	Continent continent `json:"continent"`
-	Country   country   `json:"country"`
+	*Continent `json:"continent,omitempty"`
+	*Country   `json:"country,omitempty"`
+	City       string `json:"city,omitempty"`
 }
 
 type geoNames map[geoNameId]GeoDBEntry
@@ -50,7 +65,7 @@ func readGeoNames(r io.Reader) (geoNames, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(record) < 6 {
+		if len(record) < 11 {
 			return nil, errors.New("unexpected line")
 		}
 		if i == 0 {
@@ -60,15 +75,14 @@ func readGeoNames(r io.Reader) (geoNames, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		continent := Continent{record[2], record[3]}
+		country := Country{record[4], record[5]}
+		city := record[10]
 		g[id] = GeoDBEntry{
-			Continent: continent{
-				Code: record[2],
-				Name: record[3],
-			},
-			Country: country{
-				Code: record[4],
-				Name: record[5],
-			},
+			Continent: continent.Pointer(),
+			Country:   country.Pointer(),
+			City:      city,
 		}
 	}
 	return g, nil
@@ -200,11 +214,11 @@ func NewGeoDB(b []byte) (*GeoDB, error) {
 	var names geoNames
 	withEachFile(z, func(filename string, reader io.Reader) (err error) {
 		switch path.Base(filename) {
-		case "GeoLite2-Country-Blocks-IPv4.csv":
+		case "GeoLite2-City-Blocks-IPv4.csv":
 			ipv4, err = readNetworks(reader)
-		case "GeoLite2-Country-Blocks-IPv6.csv":
+		case "GeoLite2-City-Blocks-IPv6.csv":
 			ipv6, err = readNetworks(reader)
-		case "GeoLite2-Country-Locations-en.csv":
+		case "GeoLite2-City-Locations-en.csv":
 			names, err = readGeoNames(reader)
 		}
 		return
