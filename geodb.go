@@ -12,6 +12,33 @@ import (
 	"strconv"
 )
 
+func withEachRecord(z *zip.File, fn func([]string) error) error {
+	r, err := z.Open()
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	c := csv.NewReader(r)
+	if _, err := c.Read(); err != nil {
+		return err
+	}
+
+	for i := 0; ; i++ {
+		record, err := c.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if err := fn(record); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type geoNameId uint32
 
 func ParseGeoNameId(n string) (geoNameId, error) {
@@ -54,26 +81,13 @@ type GeoDBEntry struct {
 
 type geoNames map[geoNameId]GeoDBEntry
 
-func readGeoNames(r io.Reader) (geoNames, error) {
+func readGeoNames(z *zip.File) (geoNames, error) {
 	g := geoNames{}
-	c := csv.NewReader(r)
-	for i := 0; ; i++ {
-		record, err := c.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if len(record) < 11 {
-			return nil, errors.New("unexpected line")
-		}
-		if i == 0 {
-			continue
-		}
+
+	err := withEachRecord(z, func(record []string) error {
 		id, err := ParseGeoNameId(record[0])
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		continent := Continent{record[2], record[3]}
@@ -84,7 +98,12 @@ func readGeoNames(r io.Reader) (geoNames, error) {
 			Country:   country.Pointer(),
 			City:      city,
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
 	return g, nil
 }
 
@@ -114,34 +133,27 @@ type network struct {
 
 type networks []network
 
-func readNetworks(r io.Reader) (networks, error) {
+func readNetworks(z *zip.File) (networks, error) {
 	n := networks{}
 
-	c := csv.NewReader(r)
-	for i := 0; ; i++ {
-		record, err := c.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if len(record) < 2 {
-			return nil, errors.New("unexpected line")
-		}
-		if i == 0 || record[1] == "" {
-			continue
+	err := withEachRecord(z, func(record []string) error {
+		if record[1] == "" {
+			return nil
 		}
 
 		_, nw, err := net.ParseCIDR(record[0])
 		if err != nil {
-			return nil, err
+			return err
 		}
 		id, err := ParseGeoNameId(record[1])
 		if err != nil {
-			return nil, err
+			return err
 		}
 		n = append(n, network{IPNet: *nw, NameId: id})
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	sort.Sort(n)
@@ -184,25 +196,6 @@ type GeoDB struct {
 	ipv6  networks
 }
 
-func withEachFile(z *zip.Reader, fn func(string, io.Reader) error) error {
-	for _, file := range z.File {
-		err := func(f *zip.File) error {
-			r, err := f.Open()
-			if err != nil {
-				return err
-			}
-			defer r.Close()
-
-			return fn(f.Name, r)
-		}(file)
-
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func NewGeoDB(b []byte) (*GeoDB, error) {
 	z, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
 	if err != nil {
@@ -212,17 +205,16 @@ func NewGeoDB(b []byte) (*GeoDB, error) {
 	var ipv4 networks
 	var ipv6 networks
 	var names geoNames
-	withEachFile(z, func(filename string, reader io.Reader) (err error) {
-		switch path.Base(filename) {
+	for _, file := range z.File {
+		switch path.Base(file.Name) {
 		case "GeoLite2-City-Blocks-IPv4.csv":
-			ipv4, err = readNetworks(reader)
+			ipv4, err = readNetworks(file)
 		case "GeoLite2-City-Blocks-IPv6.csv":
-			ipv6, err = readNetworks(reader)
+			ipv6, err = readNetworks(file)
 		case "GeoLite2-City-Locations-en.csv":
-			names, err = readGeoNames(reader)
+			names, err = readGeoNames(file)
 		}
-		return
-	})
+	}
 
 	if ipv4 == nil || ipv6 == nil || names == nil {
 		return nil, errors.New("couldn't find all sections")
