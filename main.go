@@ -107,11 +107,32 @@ func tryUpdatingOnce(md5sum []byte, updateSource, hashSource *Source) []byte {
 }
 
 func update(md5sum []byte, updateSource, hashSource *Source) {
+	log.Println("Starting database updates")
 	md5sum = tryUpdatingOnce(md5sum, updateSource, hashSource)
 	for {
 		time.Sleep(*updateInterval)
 		md5sum = tryUpdatingOnce(md5sum, updateSource, hashSource)
 	}
+}
+
+func initial(initSource *Source) ([]byte, error) {
+	log.Println("Loading initial database from", initSource)
+	data, err := initSource.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("Parsing initial database")
+	start := time.Now()
+	db, err := NewGeoDB(data)
+	if err != nil {
+		return nil, err
+	}
+	log.Println("Parsing done in", time.Since(start))
+	set(db)
+
+	md5sum := md5.Sum(data)
+	return md5sum[:], nil
 }
 
 func main() {
@@ -140,23 +161,10 @@ func main() {
 		}
 	}
 
-	log.Println("Loading initial database from", initSource)
-	b, err := initSource.Read()
+	md5sum, err := initial(initSource)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println("Parsing initial database")
-	start := time.Now()
-	db, err := NewGeoDB(b)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Parsing done in", time.Since(start))
-	set(db)
-
-	log.Println("Starting database updates")
-	md5sum := md5.Sum(b)
 	go update(md5sum[:], updateSource, hashSource)
 
 	http.HandleFunc("/api/ip-to-cc/", func(w http.ResponseWriter, r *http.Request) {
