@@ -6,9 +6,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-	"net"
 	"path"
-	"sort"
 	"strconv"
 )
 
@@ -81,6 +79,11 @@ type GeoDBEntry struct {
 
 type geoNames map[geoNameId]GeoDBEntry
 
+func (g geoNames) Get(id geoNameId) (GeoDBEntry, bool) {
+	e, ok := g[id]
+	return e, ok
+}
+
 func readGeoNames(z *zip.File) (geoNames, error) {
 	g := geoNames{}
 
@@ -107,93 +110,52 @@ func readGeoNames(z *zip.File) (geoNames, error) {
 	return g, nil
 }
 
-func (g geoNames) Get(id geoNameId) (GeoDBEntry, bool) {
-	e, ok := g[id]
-	return e, ok
-}
-
-func less(left, right net.IP) bool {
-	leftLen := len(left)
-	rightLen := len(right)
-	if leftLen != rightLen {
-		return leftLen < rightLen
-	}
-	for idx, b := range right {
-		if left[idx] != b {
-			return left[idx] < b
-		}
-	}
-	return false
-}
-
-type network struct {
-	net.IPNet
-	NameId geoNameId
-}
-
-type networks []network
-
-func readNetworks(z *zip.File) (networks, error) {
-	n := networks{}
+func readNetworks4(z *zip.File) (*Networks4, error) {
+	n := NewNetworks4()
 
 	err := withEachRecord(z, func(record []string) error {
 		if record[1] == "" {
 			return nil
 		}
-
-		_, nw, err := net.ParseCIDR(record[0])
-		if err != nil {
-			return err
-		}
 		id, err := ParseGeoNameId(record[1])
 		if err != nil {
 			return err
 		}
-		n = append(n, network{IPNet: *nw, NameId: id})
-		return nil
+		return n.Append(id, record[0])
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	sort.Sort(n)
+	n.Sort()
 	return n, nil
 }
 
-func (n networks) Len() int {
-	return len(n)
-}
+func readNetworks6(z *zip.File) (*Networks6, error) {
+	n := NewNetworks6()
 
-func (n networks) Swap(i, j int) {
-	n[i], n[j] = n[j], n[i]
-}
-
-func (n networks) Less(i, j int) bool {
-	return less(n[i].IP, n[j].IP)
-}
-
-func (n networks) Get(ip net.IP) (geoNameId, bool) {
-	idx := sort.Search(len(n), func(i int) bool {
-		return less(ip, n[i].IP)
+	err := withEachRecord(z, func(record []string) error {
+		if record[1] == "" {
+			return nil
+		}
+		id, err := ParseGeoNameId(record[1])
+		if err != nil {
+			return err
+		}
+		return n.Append(id, record[0])
 	})
-	if idx == 0 {
-		return 0, false
+	if err != nil {
+		return nil, err
 	}
 
-	if idx == -1 {
-		idx = len(n)
-	}
-	idx -= 1
-	if idx < len(n) && n[idx].IPNet.Contains(ip) {
-		return n[idx].NameId, true
-	}
-	return 0, false
+	n.Sort()
+	return n, nil
 }
 
 type GeoDB struct {
 	names geoNames
-	ipv4  networks
-	ipv6  networks
+	ipv4  *Networks4
+	ipv6  *Networks6
 }
 
 func NewGeoDB(b []byte) (*GeoDB, error) {
@@ -202,34 +164,35 @@ func NewGeoDB(b []byte) (*GeoDB, error) {
 		return nil, err
 	}
 
-	var ipv4 networks
-	var ipv6 networks
+	var ipv4 *Networks4
+	var ipv6 *Networks6
 	var names geoNames
 	for _, file := range z.File {
 		switch path.Base(file.Name) {
 		case "GeoLite2-City-Blocks-IPv4.csv":
-			ipv4, err = readNetworks(file)
+			ipv4, err = readNetworks4(file)
 		case "GeoLite2-City-Blocks-IPv6.csv":
-			ipv6, err = readNetworks(file)
+			ipv6, err = readNetworks6(file)
 		case "GeoLite2-City-Locations-en.csv":
 			names, err = readGeoNames(file)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	if ipv4 == nil || ipv6 == nil || names == nil {
 		return nil, errors.New("couldn't find all sections")
 	}
-	return &GeoDB{names: names, ipv4: ipv4, ipv6: ipv6}, nil
+	return &GeoDB{names, ipv4, ipv6}, nil
 }
 
 func (d *GeoDB) Get(s string) (GeoDBEntry, bool) {
-	ip := net.ParseIP(s)
-
 	var id geoNameId
 	var ok bool
-	if ipv4 := ip.To4(); ipv4 != nil {
+	if ipv4, ok4 := ParseIPv4(s); ok4 {
 		id, ok = d.ipv4.Get(ipv4)
-	} else if ipv6 := ip.To16(); ipv6 != nil {
+	} else if ipv6, ok6 := ParseIPv6(s); ok6 {
 		id, ok = d.ipv6.Get(ipv6)
 	} else {
 		return GeoDBEntry{}, false
