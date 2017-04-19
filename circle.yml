@@ -6,6 +6,7 @@ deployment:
   gcloud:
     tag: /^v[0-9]+\.[0-9]+\.[0-9]+$/
     commands:
+      - echo "building" ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
       - docker build --rm=false -t ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG} .
       - docker login -e ${DOCKER_HUB_EMAIL} -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASS}
       - docker push ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}
