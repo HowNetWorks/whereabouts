@@ -167,8 +167,8 @@ func main() {
 	}
 	go update(md5sum[:], updateSource, hashSource)
 
-	http.HandleFunc("/api/ip-to-cc/", func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path[14:]
+	http.HandleFunc("/api/whereabouts/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path[17:]
 		result, ok := get(path)
 		if !ok {
 			w.WriteHeader(http.StatusUnprocessableEntity)

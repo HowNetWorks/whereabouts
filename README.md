@@ -1,4 +1,4 @@
-# ip-to-cc [![CircleCI](https://circleci.com/gh/HowNetWorks/ip-to-cc.svg?style=shield)](https://circleci.com/gh/HowNetWorks/ip-to-cc)
+# whereabouts [![CircleCI](https://circleci.com/gh/HowNetWorks/whereabouts.svg?style=shield)](https://circleci.com/gh/HowNetWorks/whereabouts)
 
 A HTTP service for mapping IPv4 and IPv6 addresses to countries and continents.
 Written in Go (version 1.7.4).
@@ -26,18 +26,18 @@ All URL options allow `http`, `https` and `file` URLs.
 
 ## API
 
-The service supports requests to `/api/ip-to-cc/IP_ADDRESS` where `IP_ADDRESS`
+The service supports requests to `/api/whereabouts/IP_ADDRESS` where `IP_ADDRESS`
 can be a IPv4 or IPv6 address.
 
 Let's assume the service is running on localhost port 8080 and has done the
 initial database load. To query Google's DNS service addresses run the following:
 
 ```sh
-$ curl http://localhost:8080/api/ip-to-cc/8.8.8.8
+$ curl http://localhost:8080/api/whereabouts/8.8.8.8
 {"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"},"city":"Mountain View"}
-$ curl http://localhost:8080/api/ip-to-cc/2001:4860:4860::8888
+$ curl http://localhost:8080/api/whereabouts/2001:4860:4860::8888
 {"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"}}
-$ curl http://localhost:8080/api/ip-to-cc/192.0.2.0
+$ curl http://localhost:8080/api/whereabouts/192.0.2.0
 {}
 ```
 
@@ -45,7 +45,7 @@ If the queried IP isn't a valid IPv4/6 address the service returns status code
 422 (Unprocessable Entity) with a JSON formatted message object:
 
 ```sh
-$ curl http://localhost:8080/api/ip-to-cc/not.an.ip.address
+$ curl http://localhost:8080/api/whereabouts/not.an.ip.address
 {"message": "Not an IPv4/IPv6 address"}
 ```
 
