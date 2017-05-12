@@ -1,4 +1,4 @@
-# whereabouts [![CircleCI](https://circleci.com/gh/HowNetWorks/whereabouts.svg?style=shield)](https://circleci.com/gh/HowNetWorks/whereabouts)
+# Whereabouts [![CircleCI](https://circleci.com/gh/HowNetWorks/whereabouts.svg?style=shield)](https://circleci.com/gh/HowNetWorks/whereabouts)
 
 A HTTP service for mapping IPv4 and IPv6 addresses to countries and continents.
 Written in Go (version 1.7.4).
@@ -10,8 +10,22 @@ formatted database.
 
 The service, once launched, polls the database URL periodically and downloads
 updated versions automatically. The service can also be seeded with an initial
-database, e.g. for speeding up service startup from a Docker image. See the
-included [Dockerfile](./Dockerfile) for an example.
+database, e.g. for speeding up service startup from a Docker image.
+
+## Quick Start
+
+Launch the Whereabouts as a Docker container:
+
+```sh
+$ docker run -ti --rm -p 8080:8080 hownetworks/whereabouts:v0.3.0
+```
+
+Give the service a moment to download the database. Once that's done you 
+can start sending queries to localhost port 8080:
+
+```sh
+$ curl http://localhost:8080/api/whereabouts/8.8.8.8
+```
 
 ## Command-line Options
 
