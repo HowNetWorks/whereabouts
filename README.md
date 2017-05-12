@@ -14,7 +14,7 @@ database, e.g. for speeding up service startup from a Docker image.
 
 ## Quick Start
 
-Launch the Whereabouts as a Docker container:
+Launch Whereabouts as a Docker container:
 
 ```sh
 $ docker run -ti --rm -p 8080:8080 hownetworks/whereabouts:v0.3.0
