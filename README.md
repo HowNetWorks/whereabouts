@@ -17,10 +17,10 @@ database, e.g. for speeding up service startup from a Docker image.
 Launch Whereabouts as a Docker container:
 
 ```sh
-$ docker run -ti --rm -p 8080:8080 hownetworks/whereabouts:v0.3.0
+$ docker run -ti --rm -p 8080:8080 hownetworks/whereabouts
 ```
 
-Give the service a moment to download the database. Once that's done you 
+Give the service a moment to download the database. Once that's done you
 can start sending queries to localhost port 8080:
 
 ```sh
