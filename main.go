@@ -15,17 +15,17 @@ import (
 )
 
 const (
-	DEFAULT_UPDATE_URL = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip"
-	DEFAULT_HASH_URL   = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip.md5"
+	defaultUpdateURL = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip"
+	defaultHashURL   = "https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip.md5"
 )
 
 var (
 	host           = flag.String("host", "localhost", "server IP address or hostname")
 	port           = flag.Uint("port", 8080, "server port")
 	updateInterval = flag.Duration("update-interval", 4*time.Hour, "how often database updates are run")
-	updateUrl      = flag.String("update-url", DEFAULT_UPDATE_URL, "URL for database updates")
-	hashUrl        = flag.String("hash-url", "", "URL for checking database hash")
-	initUrl        = flag.String("init-url", "", "URL for the initial database load")
+	updateURL      = flag.String("update-url", defaultUpdateURL, "URL for database updates")
+	hashURL        = flag.String("hash-url", "", "URL for checking database hash")
+	initURL        = flag.String("init-url", "", "URL for the initial database load")
 
 	dbMux sync.RWMutex
 	db    *GeoDB
@@ -138,24 +138,24 @@ func initial(initSource *Source) ([]byte, error) {
 func main() {
 	flag.Parse()
 
-	if *hashUrl == "" && *updateUrl == DEFAULT_UPDATE_URL {
-		*hashUrl = DEFAULT_HASH_URL
+	if *hashURL == "" && *updateURL == defaultUpdateURL {
+		*hashURL = defaultHashURL
 	}
-	if *initUrl == "" {
-		*initUrl = *updateUrl
+	if *initURL == "" {
+		*initURL = *updateURL
 	}
 
 	var updateSource, initSource, hashSource *Source
-	updateSource, err := NewSource(*updateUrl)
+	updateSource, err := NewSource(*updateURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	initSource, err = NewSource(*initUrl)
+	initSource, err = NewSource(*initURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if *hashUrl != "" {
-		hashSource, err = NewSource(*hashUrl)
+	if *hashURL != "" {
+		hashSource, err = NewSource(*hashURL)
 		if err != nil {
 			log.Fatal(err)
 		}

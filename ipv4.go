@@ -95,7 +95,7 @@ func (n *Networks4) Get(ip IPv4) (geoNameId, bool) {
 	if idx == -1 {
 		idx = len(n.addrs)
 	}
-	idx -= 1
+	idx--
 	if n.addrs[idx] == ip.masked(n.bits[idx]) {
 		return n.ids[idx], true
 	}
