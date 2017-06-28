@@ -3,6 +3,7 @@ jobs:
   build:
     docker:
       - image: docker:17.06.0-ce-rc5
+    working_directory: ~/whereabouts
     steps:
       - checkout
       - setup_remote_docker
