@@ -1,10 +1,11 @@
-FROM golang:1.8-alpine
-
-COPY . /go/src/whereabouts
-RUN adduser -D app && chown -R app:app /go
-
-USER app
+FROM golang:1.8-alpine AS builder
 WORKDIR /go/src/whereabouts
-RUN go build
+COPY . .
+RUN CGO_ENABLED=0 go build -o /whereabouts -ldflags="-s -w"
 
-CMD ./whereabouts -host 0.0.0.0
+FROM alpine:3.6
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /whereabouts /
+RUN adduser -D app && chown app:app /whereabouts
+USER app
+CMD /whereabouts -host 0.0.0.0
