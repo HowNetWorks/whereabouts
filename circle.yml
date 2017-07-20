@@ -5,7 +5,7 @@ jobs:
       - image: docker:17.06.0-ce
     working_directory: ~/whereabouts
     steps:
-      - run: apk add --no-cache git
+      - run: apk add --no-cache git openssh-client
       - checkout
       - setup_remote_docker:
           version: 17.06.0-ce
@@ -23,5 +23,3 @@ jobs:
 deployment:
   workaround_for_circleci_2_0:
     tag: /.*/
-    commands:
-      - echo "This is a workaround"
