@@ -14,7 +14,7 @@ jobs:
       - deploy:
           name: Deploy the image to Docker Hub
           command: |
-            if [[ "${CIRCLE_TAG}" =~ ^v.*$ ]]; then
+            if echo -n "${CIRCLE_TAG}" | grep -Eq ^v[0-9]+\.[0-9]+\.[0-9]+$; then
               docker tag ${DOCKER_HUB_IMAGE} ${DOCKER_HUB_IMAGE}:${CIRCLE_TAG}
               docker login -e ${DOCKER_HUB_EMAIL} -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASS}
               docker push ${DOCKER_HUB_IMAGE}:${CIRCLE_TAG}
