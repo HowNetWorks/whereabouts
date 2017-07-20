@@ -2,11 +2,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: docker:17.06.0-ce-rc5
+      - image: docker:17.06.0-ce
     working_directory: ~/whereabouts
     steps:
       - checkout
       - setup_remote_docker
+          version: 17.06.0-ce
       - run:
           name: Build the image
           command: docker build -t ${DOCKER_HUB_IMAGE} .
