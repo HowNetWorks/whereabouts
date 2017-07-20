@@ -23,3 +23,5 @@ jobs:
 deployment:
   workaround_for_circleci_2_0:
     tag: /.*/
+    commands:
+      - echo "This is a workaround"
