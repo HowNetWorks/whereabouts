@@ -5,13 +5,11 @@ jobs:
       - image: docker:17.06.0-ce
     working_directory: ~/whereabouts
     steps:
-      - apk add --no-cache git
+      - run: apk add --no-cache git
       - checkout
       - setup_remote_docker:
           version: 17.06.0-ce
-      - run:
-          name: Build the image
-          command: docker build -t ${DOCKER_HUB_IMAGE} .
+      - run: docker build -t ${DOCKER_HUB_IMAGE} .
       - deploy:
           name: Deploy the image to Docker Hub
           command: |
