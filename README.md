@@ -66,3 +66,20 @@ $ curl http://localhost:8080/api/whereabouts/not.an.ip.address
 GET requests to the root path `/` return the status code 200, but only after the
 initial database load has been done. This can be used for service readiness
 checks.
+
+## Baking the Database into an Image
+
+The Docker image does not contain a copy of the MaxMind GeoLite2 City
+database, which is always loaded from MaxMind's servers when Whereabouts 
+starts. For situations where this is not feasible (e.g. environments without
+external network connectivity) you can build a custom image with that uses 
+baked-in data for the initial load.
+
+Create a Dockerfile with `hownetworks/whereabouts` as the base image:
+
+```dockerfile
+# Instead of :latest use an explicit version such as :v0.3.4 in production
+FROM hownetworks/whereabouts:latest
+ADD --chown=app:app https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip /data/
+CMD /whereabouts -host 0.0.0.0 -init-url file:///data/GeoLite2-City-CSV.zip
+```
