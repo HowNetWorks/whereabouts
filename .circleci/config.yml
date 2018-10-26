@@ -3,7 +3,7 @@ jobs:
   build:
     docker:
       - image: docker:18.06.1-ce-git
-    working_directory: ~/whereabouts
+    working_directory: /workdir
     steps:
       - checkout
       - setup_remote_docker:
@@ -12,22 +12,22 @@ jobs:
       - run: mkdir -p workspace
       - run: docker save ${DOCKER_HUB_IMAGE} | gzip > image.tar.gz
       - persist_to_workspace:
-          root: workspace
+          root: /workdir/workspace
           paths:
             - image.tar.gz
   deploy:
     docker:
       - image: docker:18.06.1-ce
-    working_directory: ~/whereabouts
+    working_directory: /workdir
     steps:
-      - attach_workspace:
-          at: workspace
       - setup_remote_docker:
           version: 18.05.0-ce
+      - attach_workspace:
+          at: /workdir/workspace
       - deploy:
           name: Deploy the image to Docker Hub
           command: |
-            zcat workspace/image.tar.gz | docker load
+            zcat /workdir/workspace/image.tar.gz | docker load
             docker tag ${DOCKER_HUB_IMAGE} ${DOCKER_HUB_IMAGE}:${CIRCLE_TAG}
             docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASS}
             docker push ${DOCKER_HUB_IMAGE}:${CIRCLE_TAG}
