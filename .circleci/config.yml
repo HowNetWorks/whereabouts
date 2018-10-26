@@ -10,7 +10,7 @@ jobs:
           version: 18.05.0-ce
       - run: docker build --pull -t ${DOCKER_HUB_IMAGE} .
       - run: mkdir -p workspace
-      - run: docker save ${DOCKER_HUB_IMAGE} | gzip > image.tar.gz
+      - run: docker save ${DOCKER_HUB_IMAGE} | gzip > workspace/image.tar.gz
       - persist_to_workspace:
           root: /workdir/workspace
           paths:
