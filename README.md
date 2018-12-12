@@ -78,7 +78,7 @@ baked-in data for the initial load.
 Create a Dockerfile with `hownetworks/whereabouts` as the base image:
 
 ```dockerfile
-# Instead of :latest use an explicit version such as :v0.3.4 in production
+# Instead of :latest use an explicit version such as :v0.4.0 in production
 FROM hownetworks/whereabouts:latest
 ADD --chown=app:app https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip /data/
 CMD /whereabouts -host 0.0.0.0 -init-url file:///data/GeoLite2-City-CSV.zip
