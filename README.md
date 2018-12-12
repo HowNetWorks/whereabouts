@@ -24,34 +24,34 @@ Give the service a moment to download the database. Once that's done you
 can start sending queries to localhost port 8080:
 
 ```sh
-$ curl http://localhost:8080/api/whereabouts/8.8.8.8
+$ curl http://localhost:8080/ip/8.8.8.8
 ```
 
 ## Command-line Options
 
- * `host` The IP address or hostname that the HTTP server should listen to. Default: `localhost`.
- * `port` The port that the HTTP server should listen to. Default: `8080`.
- * `update-interval` How often database updates should be checked from `hash-url`/`update-url`. Uses Go's [Duration format](https://golang.org/pkg/time/#ParseDuration). Default: 4 hours.
- * `update-url` A URL for updating the database. Default: MaxMind's [GeoLite2 City](https://dev.maxmind.com/geoip/geoip2/geolite2/) database.
- * `hash-url` A URL pointing to a file containing an MD5 sum of the data in `update-url`. Useful for checking whether the database has updated without actually downloading the whole database. Default: Off by default, except when `update-url` points to its default value.
- * `init-url` A URL for the initial database load. Can be used to seed the service by e.g. baking in a snapshot of the database into the service's a Docker image. Default: The initial load will be performed from `update-url`.
+- `host` The IP address or hostname that the HTTP server should listen to. Default: `localhost`.
+- `port` The port that the HTTP server should listen to. Default: `8080`.
+- `update-interval` How often database updates should be checked from `hash-url`/`update-url`. Uses Go's [Duration format](https://golang.org/pkg/time/#ParseDuration). Default: 4 hours.
+- `update-url` A URL for updating the database. Default: MaxMind's [GeoLite2 City](https://dev.maxmind.com/geoip/geoip2/geolite2/) database.
+- `hash-url` A URL pointing to a file containing an MD5 sum of the data in `update-url`. Useful for checking whether the database has updated without actually downloading the whole database. Default: Off by default, except when `update-url` points to its default value.
+- `init-url` A URL for the initial database load. Can be used to seed the service by e.g. baking in a snapshot of the database into the service's a Docker image. Default: The initial load will be performed from `update-url`.
 
 All URL options allow `http`, `https` and `file` URLs.
 
 ## API
 
-The service supports requests to `/api/whereabouts/IP_ADDRESS` where `IP_ADDRESS`
+The service supports requests to `/ip/IP_ADDRESS` where `IP_ADDRESS`
 can be an IPv4 or IPv6 address.
 
 Let's assume the service is running on localhost port 8080 and has done the
 initial database load. To query Google's DNS service addresses run the following:
 
 ```sh
-$ curl http://localhost:8080/api/whereabouts/8.8.8.8
+$ curl http://localhost:8080/ip/8.8.8.8
 {"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"},"city":"Mountain View"}
-$ curl http://localhost:8080/api/whereabouts/2001:4860:4860::8888
+$ curl http://localhost:8080/ip/2001:4860:4860::8888
 {"continent":{"code":"NA","name":"North America"},"country":{"code":"US","name":"United States"}}
-$ curl http://localhost:8080/api/whereabouts/192.0.2.0
+$ curl http://localhost:8080/ip/192.0.2.0
 {}
 ```
 
@@ -59,7 +59,7 @@ If the queried IP isn't a valid IPv4/6 address the service returns status code
 422 (Unprocessable Entity) with a JSON formatted message object:
 
 ```sh
-$ curl http://localhost:8080/api/whereabouts/not.an.ip.address
+$ curl http://localhost:8080/ip/not.an.ip.address
 {"message": "Not an IPv4/IPv6 address"}
 ```
 
@@ -70,9 +70,9 @@ checks.
 ## Baking the Database into an Image
 
 The Docker image does not contain a copy of the MaxMind GeoLite2 City
-database, which is always loaded from MaxMind's servers when Whereabouts 
+database, which is always loaded from MaxMind's servers when Whereabouts
 starts. For situations where this is not feasible (e.g. environments without
-external network connectivity) you can build a custom image with that uses 
+external network connectivity) you can build a custom image with that uses
 baked-in data for the initial load.
 
 Create a Dockerfile with `hownetworks/whereabouts` as the base image:
